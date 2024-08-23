@@ -1,4 +1,9 @@
-import { InboxTrigger, TaskTrigger } from "@/public/img";
+import {
+  InboxActive,
+  InboxTrigger,
+  TaskActive,
+  TaskTrigger,
+} from "@/public/img";
 
 const DataIcon = [
   {
@@ -15,4 +20,34 @@ const DataIcon = [
   },
 ];
 
-export { DataIcon };
+const DataIconInbox = [
+  {
+    id: 1,
+    name: "",
+    icon: TaskTrigger,
+    link: "/task",
+  },
+  {
+    id: 2,
+    name: "",
+    icon: InboxActive,
+    link: "/",
+  },
+];
+
+const DataIconTask = [
+  {
+    id: 1,
+    name: "",
+    icon: InboxTrigger,
+    link: "/inbox",
+  },
+  {
+    id: 2,
+    name: "",
+    icon: TaskActive,
+    link: "/",
+  },
+];
+
+export { DataIcon, DataIconInbox, DataIconTask };
