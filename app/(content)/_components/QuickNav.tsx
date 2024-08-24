@@ -2,10 +2,11 @@
 
 import { QuicksTrigger } from "@/public/img";
 import Image from "next/image";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { DataIcon, DataIconInbox, DataIconTask } from "../_data/ContentData";
 import { AnimatePresence, motion } from "framer-motion";
 import { usePathname } from "next/navigation";
+import { childVariantNav, containerVariantNav } from "../_data/VariantMotion";
 
 function QuickNav() {
   const [triggerQuick, setTriggerQuick] = useState<boolean>(false);
@@ -19,45 +20,6 @@ function QuickNav() {
   const isInbox = pathname.startsWith("/inbox");
   const isTask = pathname.startsWith("/task");
 
-  const containerVariant = {
-    hidden: {
-      opacity: 0,
-      x: 20,
-    },
-    show: {
-      opacity: 1,
-      x: 0,
-      transition: {
-        duration: 0.3,
-        staggerChildren: 0.2,
-        delaychildren: 0.2,
-      },
-    },
-    exit: {
-      opacity: 0,
-      x: 20,
-      transition: {
-        duration: 0.3,
-        staggerChildren: 0.2,
-        delayChildren: 0.2,
-      },
-    },
-  };
-
-  const childVariant = {
-    hidden: {
-      opacity: 0,
-      x: 20,
-    },
-    show: {
-      opacity: 1,
-      x: 0,
-      transition: {
-        duration: 0.3,
-      },
-    },
-  };
-
   return (
     <div className="relative w-full h-auto ">
       <div className="fixed right-[300px] bottom-0 flex flex-row">
@@ -65,7 +27,7 @@ function QuickNav() {
           <AnimatePresence>
             {triggerQuick && (
               <motion.div
-                variants={containerVariant}
+                variants={containerVariantNav}
                 initial="hidden"
                 animate="show"
                 exit="exit"
@@ -75,7 +37,7 @@ function QuickNav() {
                   <motion.a
                     href={d.link}
                     key={d.id}
-                    variants={childVariant}
+                    variants={childVariantNav}
                     className="flex items-center flex-col w-fit h-full"
                   >
                     <p>{d.name}</p>
@@ -97,7 +59,7 @@ function QuickNav() {
           <>
             <AnimatePresence>
               <motion.div
-                variants={containerVariant}
+                variants={containerVariantNav}
                 initial="hidden"
                 animate="show"
                 exit="exit"
@@ -107,7 +69,7 @@ function QuickNav() {
                   <motion.a
                     href={d.link}
                     key={d.id}
-                    variants={childVariant}
+                    variants={childVariantNav}
                     className="flex items-center flex-col w-full h-full"
                   >
                     <p>{d.name}</p>
@@ -129,7 +91,7 @@ function QuickNav() {
           <>
             <AnimatePresence>
               <motion.div
-                variants={containerVariant}
+                variants={containerVariantNav}
                 initial="hidden"
                 animate="show"
                 exit="exit"
@@ -139,7 +101,7 @@ function QuickNav() {
                   <motion.a
                     href={d.link}
                     key={d.id}
-                    variants={childVariant}
+                    variants={childVariantNav}
                     className="flex items-center flex-col w-full h-full"
                   >
                     <p>{d.name}</p>
