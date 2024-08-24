@@ -1,5 +1,4 @@
 import React from "react";
-import QuickNav from "../(content)/_components/QuickNav";
 import TaskContent from "./_content/TaskContent";
 
 function Page() {
