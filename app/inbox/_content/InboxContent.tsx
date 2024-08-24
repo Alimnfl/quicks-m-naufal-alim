@@ -64,12 +64,12 @@ function InboxContent() {
           <BsSearch />
         </label>
         <Link
-          href={""}
+          href={`/inbox/qweqw`}
           className="flex flex-row items-start gap-4 text-black justify-start"
         >
           <Image alt="" src={GroupDiscussion} width={50} height={50} />
           <div className="flex flex-col">
-            <h3 className="text-base text-primary-1">109220-Naturalization</h3>
+            <h2 className="font-bold text-primary-1">109220-Naturalization</h2>
             <p className="text-sm font-medium">Camero :</p>
             <p className="text-primary-3 text-sm">Please check this out</p>
           </div>
