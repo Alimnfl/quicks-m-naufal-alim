@@ -9,13 +9,13 @@ const DataIcon = [
   {
     id: 1,
     name: "Task",
-    icon: InboxTrigger,
+    icon: TaskTrigger,
     link: "/task",
   },
   {
     id: 2,
     name: "Inbox",
-    icon: TaskTrigger,
+    icon: InboxTrigger,
     link: "/inbox",
   },
 ];
