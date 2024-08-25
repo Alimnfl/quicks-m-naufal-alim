@@ -7,6 +7,7 @@ import QuicksTrigger from "@/public/img/quicks-trigger.png";
 import GroupDiscussion from "@/public/img/group-discussion.png";
 import TimerIcon from "@/public/img/timer.svg";
 import PencilIcon from "@/public/img/pencil.svg";
+import PencilBlueIcon from "@/public/img/PencilBlue.svg";
 import DateIcon from "@/public/img/date.svg";
 
 export {
@@ -18,6 +19,7 @@ export {
   QuicksTrigger,
   GroupDiscussion,
   PencilIcon,
+  PencilBlueIcon,
   TimerIcon,
   DateIcon,
 };

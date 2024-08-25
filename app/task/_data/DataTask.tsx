@@ -13,15 +13,4 @@ const DataTask = [
   },
 ];
 
-const DataAction = [
-  {
-    id: 1,
-    name: "Delete",
-  },
-  {
-    id: 2,
-    name: "Edited",
-  },
-];
-
-export { DataTask, DataAction };
+export { DataTask };
