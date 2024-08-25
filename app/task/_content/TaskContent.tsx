@@ -1,6 +1,6 @@
 "use client";
 
-import React, { ChangeEvent, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { IoIosArrowDown, IoIosArrowUp } from "react-icons/io";
 import { DataTask } from "../_data/DataTask";
@@ -28,7 +28,7 @@ interface TaskDataProps {
   date: string;
   description: string;
   title: string;
-  urgent: string;
+  urgency: "common" | "personal" | "urgent";
   status: boolean;
 }
 
@@ -38,6 +38,12 @@ function TaskContent() {
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [isHidden, setIsHidden] = useState<{ [key: string]: boolean }>({});
   const [isAction, setIsAction] = useState<{ [key: string]: boolean }>({});
+  const [isActionTask, setIsActionTask] = useState<{ [key: string]: boolean }>(
+    {}
+  );
+  const [isTriggerActionTask, setIsTriggerActionTask] = useState<{
+    [key: string]: boolean;
+  }>({});
   const [dataTask, setDataTask] = useState<TaskDataProps[]>([]);
 
   // Read items from database
@@ -54,6 +60,7 @@ function TaskContent() {
     });
   }, []);
 
+  console.log(selectedTask);
   //Deleted Item by id.
   const deleteItem = async (id: string) => {
     await deleteDoc(doc(db, "task-data", id));
@@ -62,21 +69,21 @@ function TaskContent() {
   // Save Task
   const addTaskToFirestore = async () => {
     const now = new Date();
-    const formattedNewDate = `${now.getFullYear()}-${String(now.getMonth() + 1)}-${String(now.getDate()).padStart(2, "0")}`;
+    const formattedNewDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 
     const newTask: TaskDataProps = {
       id: uuidv4(),
       date: selectedDate || formattedNewDate,
       description: "",
       title: selectedTask || "Default Task",
-      urgent: "urgent",
+      urgency: "common",
       status: false,
     };
 
     try {
       await addDoc(collection(db, "task-data"), newTask);
       setSelectedTask("My Task");
-      setSelectedDate("");
+      setSelectedDate(formattedNewDate);
     } catch (error) {
       console.error("Error saving task: ", error);
     }
@@ -116,6 +123,18 @@ function TaskContent() {
     updateTask(taskId, updates);
   };
 
+  const filterTasksByUrgency = (urgency: string) => {
+    return dataTask.filter((task) => {
+      if (task.urgency === "common" && selectedTask === "My Task")
+        return selectedTask === "My Task";
+      if (task.urgency === "personal" && selectedTask === "Personal Errand")
+        return selectedTask === "Personal Errand";
+      if (task.urgency === "urgent" && selectedTask === "Urgent To-Do")
+        return selectedTask === "Urgent To-Do";
+      return false;
+    });
+  };
+
   const toggleTriggerTask = () => {
     setTaskTrigger((prev) => !prev);
   };
@@ -127,8 +146,23 @@ function TaskContent() {
     }));
   };
 
-  const toggleHiddenAction = (id: string) => {
-    setIsAction((prev) => ({ ...prev, [id]: !prev[id] }));
+  console.log(dataTask);
+
+  const toggleHiddenAction = async (id: string) => {
+    await setIsAction((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const toggleTriggerActionTask = async (id: string) => {
+    setIsTriggerActionTask((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const toggleActionTask = async (
+    id: string,
+    urgentValue: "common" | "personal" | "urgent"
+  ) => {
+    await updateTask(id, { urgency: urgentValue });
+    setIsTriggerActionTask((prev) => ({ ...prev, [id]: false }));
+    setIsActionTask((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
   const selectTask = (task: string) => {
@@ -183,138 +217,189 @@ function TaskContent() {
         </div>
 
         <div className="overflow-y-auto w-full flex flex-col gap-2 h-full px-4">
-          {dataTask.map((data) => (
-            <div key={data.id} className="flex gap-2 justify-between flex-row">
-              <div className="flex flex-row gap-3 items-center">
-                <div className="flex flex-col h-full w-fit pt-1">
-                  <input
-                    className="w-[18px] h-[18px]"
-                    type="checkbox"
-                    checked={data.status}
-                    onChange={(e) =>
-                      handleInputChange(data.id, "status", e.target.checked)
-                    }
-                  />
-                </div>
-                <div className="flex flex-col gap-2 text-primary-2">
-                  <input
-                    value={data.title}
-                    onChange={(e) =>
-                      handleInputChange(data.id, "title", e.target.value)
-                    }
-                    onBlur={(e) =>
-                      handleInputChange(data.id, "title", e.target.value)
-                    }
-                    className={`font-bold w-[335px] outline-none text-justify h-fit ${
-                      data.status === true ? "line-through text-primary-3" : ""
-                    }`}
-                    spellCheck={false}
-                  />
-                  <AnimatePresence>
-                    {!isHidden[data.id] && (
-                      <motion.div
-                        variants={containerVariantDropdown}
-                        initial="hidden"
-                        animate="show"
-                        exit="exit"
-                        className="flex flex-col gap-2 overflow-hidden "
-                      >
-                        <div className="flex flex-row gap-4">
-                          <Image src={TimerIcon} alt="" />
-                          <motion.div className="">
-                            <input
+          {filterTasksByUrgency(selectedTask).map((data) => {
+            if (data.id === "some_known_duplicate_id") {
+              console.warn(`Duplicate key detected: ${data.id}`);
+            }
+            return (
+              <div
+                key={data.id}
+                className="flex gap-2 justify-between flex-row"
+              >
+                <div className="flex flex-row gap-3 items-center">
+                  <div className="flex flex-col h-full w-fit pt-1">
+                    <input
+                      className="w-[18px] h-[18px]"
+                      type="checkbox"
+                      checked={data.status}
+                      onChange={(e) =>
+                        handleInputChange(data.id, "status", e.target.checked)
+                      }
+                    />
+                  </div>
+                  <div className="flex flex-col gap-2 text-primary-2">
+                    <input
+                      value={data.title}
+                      onChange={(e) =>
+                        handleInputChange(data.id, "title", e.target.value)
+                      }
+                      onBlur={(e) =>
+                        handleInputChange(data.id, "title", e.target.value)
+                      }
+                      className={`font-bold w-[335px] outline-none text-justify h-fit ${
+                        data.status === true
+                          ? "line-through text-primary-3"
+                          : ""
+                      }`}
+                      spellCheck={false}
+                    />
+                    <AnimatePresence>
+                      {!isHidden[data.id] && (
+                        <motion.div
+                          variants={containerVariantDropdown}
+                          initial="hidden"
+                          animate="show"
+                          exit="exit"
+                          className="flex flex-col gap-2 overflow-hidden "
+                        >
+                          <div className="flex flex-row gap-4">
+                            <Image src={TimerIcon} alt="" />
+                            <motion.div className="">
+                              <input
+                                onChange={(e) =>
+                                  handleInputChange(
+                                    data.id,
+                                    "date",
+                                    e.target.value
+                                  )
+                                }
+                                onBlur={(e) =>
+                                  handleInputChange(
+                                    data.id,
+                                    "date",
+                                    e.target.value
+                                  )
+                                }
+                                value={data.date}
+                                type="date"
+                                className="border border-primary-3 rounded-md py-1 px-2"
+                              />
+                            </motion.div>
+                          </div>
+                          <div className="w-full relative pt-1 flex flex-row gap-4 items-start">
+                            {data.description === "" ? (
+                              <Image src={PencilIcon} alt="" className="pt-1" />
+                            ) : (
+                              <Image
+                                src={PencilBlueIcon}
+                                alt=""
+                                className="pt-1"
+                                width={16}
+                              />
+                            )}
+                            <textarea
+                              value={data.description}
                               onChange={(e) =>
                                 handleInputChange(
                                   data.id,
-                                  "date",
+                                  "description",
                                   e.target.value
                                 )
                               }
                               onBlur={(e) =>
                                 handleInputChange(
                                   data.id,
-                                  "date",
+                                  "description",
                                   e.target.value
                                 )
                               }
-                              value={data.date}
-                              type="date"
-                              className="border border-primary-3 rounded-md py-1 px-2"
+                              spellCheck="false"
+                              name="message"
+                              className="outline-none w-[310px] resize-none overflow-hidden h-auto"
+                              placeholder="No Description"
                             />
-                          </motion.div>
-                        </div>
-                        <div className="w-full relative pt-1 flex flex-row gap-4 items-start">
-                          {data.description === "" ? (
-                            <Image src={PencilIcon} alt="" className="pt-1" />
-                          ) : (
-                            <Image
-                              src={PencilBlueIcon}
-                              alt=""
-                              className="pt-1"
-                              width={16}
-                            />
-                          )}
-                          <textarea
-                            value={data.description}
-                            onChange={(e) =>
-                              handleInputChange(
-                                data.id,
-                                "description",
-                                e.target.value
-                              )
-                            }
-                            onBlur={(e) =>
-                              handleInputChange(
-                                data.id,
-                                "description",
-                                e.target.value
-                              )
-                            }
-                            spellCheck="false"
-                            name="message"
-                            className="outline-none w-[310px] resize-none overflow-hidden h-auto"
-                            placeholder="No Description"
-                          />
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              </div>
-              <div className="items-start justify-start h-full w-fit ">
-                <div className="flex flex-row items-center gap-2">
-                  <div className="font-base text-indicator-3">2 Days Left</div>
-                  <div className="text-primary-2 ">
-                    {convertDate(data.date)}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
-                  <button onClick={() => toggleHiddenTask(data.id)}>
-                    {isHidden[data.id] ? <IoIosArrowDown /> : <IoIosArrowUp />}
-                  </button>
-
-                  <div className="relative flex flex-col">
-                    <button onClick={() => toggleHiddenAction(data.id)}>
-                      <SlOptions size={12} />
+                </div>
+                <div className="items-start justify-start h-full w-fit ">
+                  <div className="flex flex-row items-center gap-2">
+                    <div className="font-base text-indicator-3">
+                      2 Days Left
+                    </div>
+                    <div className="text-primary-2 ">
+                      {convertDate(data.date)}
+                    </div>
+                    <button onClick={() => toggleHiddenTask(data.id)}>
+                      {isHidden[data.id] ? (
+                        <IoIosArrowDown />
+                      ) : (
+                        <IoIosArrowUp />
+                      )}
                     </button>
-                    {isAction[data.id] && (
-                      <motion.div
-                        variants={containerVariantDropdown}
-                        initial="hidden"
-                        animate="show"
-                        className="absolute z-20 top-3 right-1 mt-2 w-[] text-primary-3 bg-white border border-gray-300 rounded-md shadow-lg"
-                      >
-                        <button
-                          onClick={() => deleteItem(data.id)}
-                          className="px-2 py-2 cursor-pointer  hover:bg-gray-200"
+
+                    <div className="relative flex flex-col">
+                      <button onClick={() => toggleHiddenAction(data.id)}>
+                        <SlOptions size={12} />
+                      </button>
+                      {isAction[data.id] && (
+                        <motion.div
+                          variants={containerVariantDropdown}
+                          initial="hidden"
+                          animate="show"
+                          className="absolute z-20 top-3 right-1 mt-2 w-[120px] flex flex-col text-primary-3 bg-white border border-gray-300 rounded-md shadow-lg"
                         >
-                          Delete
-                        </button>
-                      </motion.div>
-                    )}
+                          <button
+                            onClick={() => deleteItem(data.id)}
+                            className="px-2 py-2 cursor-pointer  hover:bg-gray-200"
+                          >
+                            Delete
+                          </button>
+                          <button
+                            onClick={() => toggleTriggerActionTask(data.id)}
+                            className="px-2 py-2 cursor-pointer  hover:bg-gray-200"
+                          >
+                            Priority Task
+                          </button>
+                        </motion.div>
+                      )}
+                      {isTriggerActionTask[data.id] && (
+                        <motion.div
+                          variants={containerVariantDropdown}
+                          initial="hidden"
+                          animate="show"
+                          className="absolute z-20 top-3 right-1 mt-2 w-[140px] flex flex-col text-primary-3 bg-white border border-gray-300 rounded-md shadow-lg"
+                        >
+                          <button
+                            onClick={() => toggleActionTask(data.id, "common")}
+                            className="px-2 py-2 cursor-pointer  hover:bg-gray-200"
+                          >
+                            My Task
+                          </button>
+                          <button
+                            onClick={() =>
+                              toggleActionTask(data.id, "personal")
+                            }
+                            className="px-2 py-2 cursor-pointer  hover:bg-gray-200"
+                          >
+                            Personal Errand
+                          </button>
+                          <button
+                            onClick={() => toggleActionTask(data.id, "urgent")}
+                            className="px-2 py-2 cursor-pointer  hover:bg-gray-200"
+                          >
+                            Urgent To Do
+                          </button>
+                        </motion.div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </motion.div>
     </div>
