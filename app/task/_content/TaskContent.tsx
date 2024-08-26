@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { IoIosArrowDown, IoIosArrowUp } from "react-icons/io";
 import { DataTask } from "../_data/DataTask";
@@ -22,15 +22,7 @@ import {
 } from "firebase/firestore";
 import { db } from "@/app/firebase";
 import { v4 as uuidv4 } from "uuid";
-
-interface TaskDataProps {
-  id: string;
-  date: string;
-  description: string;
-  title: string;
-  urgency: "common" | "personal" | "urgent";
-  status: boolean;
-}
+import { Spinner } from "../_component/spinner";
 
 function TaskContent() {
   const [taskTrigger, setTaskTrigger] = useState<boolean>(false);
@@ -38,9 +30,9 @@ function TaskContent() {
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [isHidden, setIsHidden] = useState<{ [key: string]: boolean }>({});
   const [isAction, setIsAction] = useState<{ [key: string]: boolean }>({});
-  const [isActionTask, setIsActionTask] = useState<{ [key: string]: boolean }>(
-    {}
-  );
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const ref = useRef<HTMLDivElement>(null);
+
   const [isTriggerActionTask, setIsTriggerActionTask] = useState<{
     [key: string]: boolean;
   }>({});
@@ -48,6 +40,7 @@ function TaskContent() {
 
   // Read items from database
   useEffect(() => {
+    setIsLoading(true);
     const q = query(collection(db, "task-data"));
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
       let itemsArr: TaskDataProps[] = [];
@@ -57,10 +50,24 @@ function TaskContent() {
         itemsArr.push({ ...(data as TaskDataProps), id: doc.id });
       });
       setDataTask(itemsArr);
+      setIsLoading(false);
     });
   }, []);
 
-  console.log(selectedTask);
+  // Handle click outside to close dropdowns
+  // useEffect(() => {
+  //   const handleClickOutside = (event: MouseEvent) => {
+  //     if (ref.current && !ref.current.contains(event.target as Node)) {
+  //       setOpenTaskId(null);
+  //     }
+  //   };
+
+  //   document.addEventListener("mousedown", handleClickOutside);
+  //   return () => {
+  //     document.removeEventListener("mousedown", handleClickOutside);
+  //   };
+  // }, []);
+
   //Deleted Item by id.
   const deleteItem = async (id: string) => {
     await deleteDoc(doc(db, "task-data", id));
@@ -68,6 +75,13 @@ function TaskContent() {
 
   // Save Task
   const addTaskToFirestore = async () => {
+    let taskUrgency: TaskDataProps["urgency"] = "common";
+    if (selectedTask === "Personal Errand") {
+      taskUrgency = "personal";
+    } else if (selectedTask === "Urgent To-Do") {
+      taskUrgency = "urgent";
+    }
+
     const now = new Date();
     const formattedNewDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 
@@ -75,8 +89,8 @@ function TaskContent() {
       id: uuidv4(),
       date: selectedDate || formattedNewDate,
       description: "",
-      title: selectedTask || "Default Task",
-      urgency: "common",
+      title: selectedTask,
+      urgency: taskUrgency,
       status: false,
     };
 
@@ -107,9 +121,21 @@ function TaskContent() {
     return `${day}/${month}/${year}`;
   };
 
-  const convertDateForFirestore = (dateString: string): string => {
-    const [day, month, year] = dateString.split("/");
-    return `${year}-${month}-${day}`;
+  const calculateDaysLeft = (dueDate: string): string => {
+    const today = new Date();
+    const due = new Date(dueDate);
+    const timeDiff = due.getTime() - today.getTime();
+    const daysLeft = Math.ceil(timeDiff / (1000 * 3600 * 24));
+
+    if (daysLeft < 0) {
+      return "Overdue";
+    } else if (daysLeft === 0) {
+      return "For Today";
+    } else if (daysLeft === 1) {
+      return "1 Day Left";
+    } else {
+      return `${daysLeft} Days Left`;
+    }
   };
 
   const handleInputChange = (
@@ -131,6 +157,7 @@ function TaskContent() {
         return selectedTask === "Personal Errand";
       if (task.urgency === "urgent" && selectedTask === "Urgent To-Do")
         return selectedTask === "Urgent To-Do";
+
       return false;
     });
   };
@@ -146,8 +173,6 @@ function TaskContent() {
     }));
   };
 
-  console.log(dataTask);
-
   const toggleHiddenAction = async (id: string) => {
     await setIsAction((prev) => ({ ...prev, [id]: !prev[id] }));
   };
@@ -162,7 +187,6 @@ function TaskContent() {
   ) => {
     await updateTask(id, { urgency: urgentValue });
     setIsTriggerActionTask((prev) => ({ ...prev, [id]: false }));
-    setIsActionTask((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
   const selectTask = (task: string) => {
@@ -217,10 +241,13 @@ function TaskContent() {
         </div>
 
         <div className="overflow-y-auto w-full flex flex-col gap-2 h-full px-4">
+          {isLoading && (
+            <div className="text-center justify-center text-primary-3 pb-10 w-full h-full flex flex-col items-center gap-8">
+              <Spinner size={"icon"} />
+              Loading Task List
+            </div>
+          )}
           {filterTasksByUrgency(selectedTask).map((data) => {
-            if (data.id === "some_known_duplicate_id") {
-              console.warn(`Duplicate key detected: ${data.id}`);
-            }
             return (
               <div
                 key={data.id}
@@ -315,20 +342,28 @@ function TaskContent() {
                               }
                               spellCheck="false"
                               name="message"
-                              className="outline-none w-[310px] resize-none overflow-hidden h-auto"
+                              className="outline-none mb-1 w-[310px] resize-none overflow-hidden h-auto"
                               placeholder="No Description"
                             />
                           </div>
+                          {/* {data.description === "" ? (
+                            <div></div>
+                          ) : (
+                            <div className="absolute translate-y-[84px] w-[540px] border border-primary-3 mb-6"></div>
+                          )} */}
                         </motion.div>
                       )}
                     </AnimatePresence>
                   </div>
                 </div>
+
                 <div className="items-start justify-start h-full w-fit ">
                   <div className="flex flex-row items-center gap-2">
-                    <div className="font-base text-indicator-3">
-                      2 Days Left
-                    </div>
+                    {data.status === false && (
+                      <div className="font-base text-indicator-3">
+                        {calculateDaysLeft(data.date)}
+                      </div>
+                    )}
                     <div className="text-primary-2 ">
                       {convertDate(data.date)}
                     </div>
@@ -353,7 +388,7 @@ function TaskContent() {
                         >
                           <button
                             onClick={() => deleteItem(data.id)}
-                            className="px-2 py-2 cursor-pointer  hover:bg-gray-200"
+                            className="px-2 py-2 cursor-pointer text-indicator-3 hover:bg-gray-200"
                           >
                             Delete
                           </button>
