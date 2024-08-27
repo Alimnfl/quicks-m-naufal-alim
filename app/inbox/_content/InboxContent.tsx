@@ -3,48 +3,42 @@
 import { GroupDiscussion, InboxActive } from "@/public/img";
 import Image from "next/image";
 import Link from "next/link";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { BsSearch } from "react-icons/bs";
 import { motion } from "framer-motion";
+import { containerVariant } from "@/app/(content)/_data/VariantMotion";
+import {
+  collection,
+  deleteDoc,
+  doc,
+  onSnapshot,
+  query,
+} from "firebase/firestore";
+import { db } from "@/app/firebase";
 
 function InboxContent() {
-  const containerVariant = {
-    hidden: {
-      opacity: 0,
-      x: 20,
-    },
-    show: {
-      opacity: 1,
-      x: 0,
-      transition: {
-        duration: 0.3,
-        staggerChildren: 0.2,
-        delaychildren: 0.2,
-      },
-    },
-    exit: {
-      opacity: 0,
-      x: 20,
-      transition: {
-        duration: 0.8,
-        staggerChildren: 0.4,
-        delayChildren: 1.4,
-      },
-    },
-  };
+  const [dataInbox, setDataInbox] = useState<InboxDataProps[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  const childVariant = {
-    hidden: {
-      opacity: 0,
-      x: 20,
-    },
-    show: {
-      opacity: 1,
-      x: 0,
-      transition: {
-        duration: 1.7,
-      },
-    },
+  // Read items from database
+  useEffect(() => {
+    setIsLoading(true);
+    const q = query(collection(db, "inbox-data"));
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+      let itemsArr: InboxDataProps[] = [];
+
+      querySnapshot.forEach((doc) => {
+        const data = doc.data() as Partial<InboxDataProps>;
+        itemsArr.push({ ...(data as InboxDataProps), id: doc.id });
+      });
+      setDataInbox(itemsArr);
+      setIsLoading(false);
+    });
+  }, []);
+
+  //Deleted Item by id.
+  const deleteItem = async (id: string) => {
+    await deleteDoc(doc(db, "task-data", id));
   };
 
   return (
@@ -75,7 +69,22 @@ function InboxContent() {
           </div>
           <div className="text-primary-3">January 1, 2021 19:10</div>
         </Link>
-        <div className="w-full text-primary-3 border mt-4"></div>
+        <div className="w-full text-primary-3 border my-4"></div>
+        {dataInbox.map((d) => (
+          <Link
+            href={`/inbox/${d.groupName}`}
+            key={d.id}
+            className="flex flex-row items-start gap-4 text-black justify-start"
+          >
+            <Image alt="" src={GroupDiscussion} width={50} height={50} />
+            <div className="flex flex-col">
+              <h2 className="font-bold text-primary-1">{d.groupName}</h2>
+              <p className="text-sm font-medium">{d.userName} :</p>
+              <p className="text-primary-3 text-sm">{d.message}</p>
+            </div>
+            <div className="text-primary-3">{d.date}</div>
+          </Link>
+        ))}
       </motion.div>
     </div>
   );

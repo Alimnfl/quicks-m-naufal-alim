@@ -1,55 +1,77 @@
 "use client";
 
 import Link from "next/link";
-import React from "react";
+import React, { FormEvent, useEffect, useState } from "react";
 import { BsX } from "react-icons/bs";
-import { motion } from "framer-motion";
 import { useParams } from "next/navigation";
+import { motion } from "framer-motion";
 import { AiOutlineArrowLeft } from "react-icons/ai";
-import { DiVim } from "react-icons/di";
 import { SlOptions } from "react-icons/sl";
+import { useUser } from "@clerk/clerk-react";
+import { containerVariant } from "@/app/(content)/_data/VariantMotion";
+import { db } from "@/app/firebase";
+import {
+  addDoc,
+  collection,
+  onSnapshot,
+  query,
+  QuerySnapshot,
+  where,
+} from "firebase/firestore";
+import { v4 as uuidv4 } from "uuid";
 
 function InboxIdContent() {
+  const [dataInbox, setDataInbox] = useState<InboxDataProps[]>([]);
+  const [message, setMessage] = useState<string>("");
+
   const { id } = useParams();
+  const groupName = typeof id === "string" ? id : id[0];
+  const { user } = useUser();
 
-  const containerVariant = {
-    hidden: {
-      opacity: 0,
-      x: 20,
-    },
-    show: {
-      opacity: 1,
-      x: 0,
-      transition: {
-        duration: 0.3,
-        staggerChildren: 0.2,
-        delaychildren: 0.2,
-      },
-    },
-    exit: {
-      opacity: 0,
-      x: 20,
-      transition: {
-        duration: 0.8,
-        staggerChildren: 0.4,
-        delayChildren: 1.4,
-      },
-    },
+  const userId = user ? user.id : "";
+  const userName = user ? user.firstName : "";
+
+  // Read data inbox
+  useEffect(() => {
+    const q = query(
+      collection(db, "inbox-data"),
+      where("groupName", "==", decodeURIComponent(groupName))
+    );
+
+    const unsubscribe = onSnapshot(q, (QuerySnapshot) => {
+      const inboxData: InboxDataProps[] = [];
+      QuerySnapshot.forEach((doc) => {
+        inboxData.push(doc.data() as InboxDataProps);
+      });
+      setDataInbox(inboxData);
+    });
+    return () => unsubscribe();
+  }, [id]);
+
+  // Add message data inbox
+  const addItem = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    if (message.trim() === "") return;
+    try {
+      const newMessage: InboxDataProps = {
+        id: uuidv4(),
+        clock: new Date().toLocaleTimeString(),
+        date: new Date().toLocaleDateString(),
+        groupName: decodeURIComponent(groupName),
+        message: message,
+        userId: userId,
+        userName: userName,
+      };
+
+      await addDoc(collection(db, "inbox-data"), newMessage);
+      setMessage("");
+    } catch (error) {
+      console.error("Error adding message: ", error);
+    }
   };
 
-  const childVariant = {
-    hidden: {
-      opacity: 0,
-      x: 20,
-    },
-    show: {
-      opacity: 1,
-      x: 0,
-      transition: {
-        duration: 1.7,
-      },
-    },
-  };
+  console.log(dataInbox);
 
   return (
     <div className="flex flex-col items-end">
@@ -66,7 +88,7 @@ function InboxIdContent() {
             </Link>
             <div className="">
               <h2 className="font-bold text-primary-1">
-                109220-Naturalization
+                {dataInbox.map((d) => d.groupName)}
               </h2>
               <p className="text-primary-3">3 Participant</p>
             </div>
@@ -77,11 +99,16 @@ function InboxIdContent() {
         </div>
         <div className="border border-primary-4 w-full my-2"></div>
 
-        <ConversationalContent />
+        <ConversationalContent dataInbox={dataInbox} userId={userId} />
 
-        <div className="flex flex-row gap-2 w-full h-fit py-4 px-4">
+        <form
+          onSubmit={addItem}
+          className="flex flex-row gap-2 w-full h-fit py-4 px-4"
+        >
           <label className="w-full">
             <input
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
               type="text"
               className="border w-full py-2 px-2 rounded-md"
               placeholder="Type to text"
@@ -93,27 +120,34 @@ function InboxIdContent() {
           >
             Send
           </button>
-        </div>
+        </form>
       </motion.div>
     </div>
   );
 }
 
-function ConversationalContent() {
+function ConversationalContent({
+  dataInbox,
+  userId,
+}: {
+  userId: string;
+  dataInbox: InboxDataProps[];
+}) {
   return (
     <div className="flex flex-col w-full overflow-auto h-full px-5 gap-4">
-      <div className="flex flex-col gap-1 items-end">
-        <h3 className="text-chat-2">You</h3>
-        <div className="flex flex-row gap-3">
-          <SlOptions size={12} />
-          <div className="flex flex-col bg-chat-2.1 text-primary-2 p-2 max-w-[540px] rounded-md">
-            <p>
-              No worries. It will be completed ASAP. I’ve asked him yesterday.
-            </p>
-            <p>19.12</p>
+      {dataInbox.map((d) => d.userId === userId) &&
+        dataInbox.map((d) => (
+          <div key={d.userName} className="flex flex-col gap-1 items-end">
+            <h3 className="text-chat-2">You</h3>
+            <div className="flex flex-row gap-3">
+              <SlOptions size={12} />
+              <div className="flex flex-col bg-chat-2.1 text-primary-2 p-2 max-w-[540px] rounded-md">
+                <p>{d.message}</p>
+                <p>{d.clock}</p>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
+        ))}
 
       <div className="items-center justify-center flex flex-row w-full">
         <div className="border border-primary-3 h-fit w-full"></div>
