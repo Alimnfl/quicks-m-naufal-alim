@@ -54,20 +54,6 @@ function TaskContent() {
     });
   }, []);
 
-  // Handle click outside to close dropdowns
-  // useEffect(() => {
-  //   const handleClickOutside = (event: MouseEvent) => {
-  //     if (ref.current && !ref.current.contains(event.target as Node)) {
-  //       setOpenTaskId(null);
-  //     }
-  //   };
-
-  //   document.addEventListener("mousedown", handleClickOutside);
-  //   return () => {
-  //     document.removeEventListener("mousedown", handleClickOutside);
-  //   };
-  // }, []);
-
   //Deleted Item by id.
   const deleteItem = async (id: string) => {
     await deleteDoc(doc(db, "task-data", id));
