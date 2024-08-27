@@ -24,7 +24,7 @@ function Navbar() {
         )}
         {isAuthenticated && !isLoading && (
           <>
-            <UserButton afterSwitchSessionUrl="/" />
+            <UserButton afterSwitchSessionUrl="/" afterSignOutUrl="/" />
           </>
         )}
       </div>
