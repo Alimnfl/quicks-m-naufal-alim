@@ -3,7 +3,7 @@
 import Link from "next/link";
 import React, { FormEvent, useEffect, useState } from "react";
 import { BsX } from "react-icons/bs";
-import { useParams } from "next/navigation";
+import { redirect, useParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { AiOutlineArrowLeft } from "react-icons/ai";
 import { SlOptions } from "react-icons/sl";
@@ -19,13 +19,17 @@ import {
   where,
 } from "firebase/firestore";
 import { v4 as uuidv4 } from "uuid";
+import { useConvexAuth } from "convex/react";
+import { Inbox } from "lucide-react";
 
 function InboxIdContent() {
   const [dataInbox, setDataInbox] = useState<InboxDataProps[]>([]);
   const [message, setMessage] = useState<string>("");
+  const { isAuthenticated } = useConvexAuth();
 
   const { id } = useParams();
   const groupName = typeof id === "string" ? id : id[0];
+  const decodedGroupName = decodeURIComponent(groupName);
   const { user } = useUser();
 
   const userId = user ? user.id : "";
@@ -35,7 +39,7 @@ function InboxIdContent() {
   useEffect(() => {
     const q = query(
       collection(db, "inbox-data"),
-      where("groupName", "==", decodeURIComponent(groupName))
+      where("groupName", "==", decodedGroupName)
     );
 
     const unsubscribe = onSnapshot(q, (QuerySnapshot) => {
@@ -58,7 +62,7 @@ function InboxIdContent() {
         id: uuidv4(),
         clock: new Date().toLocaleTimeString(),
         date: new Date().toLocaleDateString(),
-        groupName: decodeURIComponent(groupName),
+        groupName: decodedGroupName,
         message: message,
         userId: userId,
         userName: userName,
@@ -70,6 +74,20 @@ function InboxIdContent() {
       console.error("Error adding message: ", error);
     }
   };
+
+  useEffect(() => {
+    const groupNameMatches = dataInbox.some(
+      (d) => d.groupName === decodedGroupName
+    );
+
+    if (!groupNameMatches) {
+      const timer = setTimeout(() => {
+        redirect("/");
+      }, 5000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [dataInbox, decodedGroupName]);
 
   console.log(dataInbox);
 
@@ -88,7 +106,7 @@ function InboxIdContent() {
             </Link>
             <div className="">
               <h2 className="font-bold text-primary-1">
-                {dataInbox.map((d) => d.groupName)}
+                {dataInbox.length > 0 && dataInbox[0].groupName}
               </h2>
               <p className="text-primary-3">3 Participant</p>
             </div>
@@ -115,7 +133,7 @@ function InboxIdContent() {
             />
           </label>
           <button
-            type="button"
+            type="submit"
             className="py-2 px-2 w-[100px] h-[40px] bg-primary-1 rounded-md font-semibold text-white"
           >
             Send
@@ -133,45 +151,119 @@ function ConversationalContent({
   userId: string;
   dataInbox: InboxDataProps[];
 }) {
+  function formatTimeForSorting(clock: string): string {
+    if (!clock) return "";
+
+    const [time, modifier] = clock.trim().split(" "); // split time and AM/PM
+    if (!time) return "";
+
+    let [hours, minutes, seconds] = time.split(":").map(Number);
+
+    if (isNaN(hours) || isNaN(minutes) || isNaN(seconds)) return "";
+
+    if (modifier === "PM" && hours !== 12) {
+      hours += 12;
+    } else if (modifier === "AM" && hours === 12) {
+      hours = 0;
+    }
+
+    return `${hours.toString().padStart(2, "0")}:${minutes
+      .toString()
+      .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+  }
+
+  function formatTimeForDisplay(clock: string): string {
+    if (!clock) return "";
+
+    const [time, modifier] = clock.trim().split(" "); //split time and AM/PM
+    if (!time) return "";
+
+    let [hours, minutes] = time.split(":").map(Number);
+
+    if (isNaN(hours) || isNaN(minutes)) return "";
+
+    if (modifier === "PM" && hours !== 12) {
+      hours += 12;
+    } else if (modifier === "AM" && hours === 12) {
+      hours = 0;
+    }
+
+    return `${hours.toString().padStart(2, "0")}.${minutes.toString().padStart(2, "0")}`;
+  }
+
+  // Normal formattedDate
+  function formatDate(dateString: string): string {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  }
+
+  //combine and sort message by time (including seconds)
+
+  const sortedMessages = dataInbox
+    .filter(
+      (d) => d.message !== "" && d.message !== null && d.groupName !== null
+    )
+    .map((d) => ({
+      ...d,
+      formattedTimeForSorting: formatTimeForSorting(d.clock),
+      formattedTimeForDisplay: formatTimeForDisplay(d.clock),
+      formattedDate: formatDate(d.date),
+    }))
+    .sort((a, b) =>
+      a.formattedTimeForSorting > b.formattedTimeForSorting ? 1 : -1
+    );
+
+  let lastDate = "";
+
   return (
     <div className="flex flex-col w-full overflow-auto h-full px-5 gap-4">
-      {dataInbox.map((d) => d.userId === userId) &&
-        dataInbox.map((d) => (
-          <div key={d.userName} className="flex flex-col gap-1 items-end">
-            <h3 className="text-chat-2">You</h3>
-            <div className="flex flex-row gap-3">
-              <SlOptions size={12} />
-              <div className="flex flex-col bg-chat-2.1 text-primary-2 p-2 max-w-[540px] rounded-md">
-                <p>{d.message}</p>
-                <p>{d.clock}</p>
+      {sortedMessages.map((d, index) => {
+        const showDate = d.formattedDate !== lastDate;
+        lastDate = d.formattedDate;
+
+        return (
+          <div key={index}>
+            {showDate && (
+              <div className="items-center justify-center flex flex-row w-full">
+                <div className="border border-primary-3 h-fit w-full"></div>
+                <div className="flex w-full items-center justify-center h-fit">
+                  <p>
+                    {d.formattedDate === formatDate(new Date().toISOString())
+                      ? "Today"
+                      : d.formattedDate}
+                  </p>
+                </div>
+                <div className="border border-primary-3 h-fit w-full"></div>
+              </div>
+            )}
+
+            <div
+              className={`flex flex-col gap-1 ${d.userId === userId ? "items-end" : "items-start"}`}
+            >
+              <h3
+                className={d.userId === userId ? "text-chat-2" : "text-chat-1"}
+              >
+                {d.userId === userId ? "You" : d.userName}
+              </h3>
+              <div className="flex flex-row gap-3">
+                {d.userId === userId && <SlOptions size={12} />}
+                <div
+                  className={`flex flex-col ${d.userId !== userId ? "bg-chat-1.1" : "bg-chat-2.1"}  text-primary-2 p-2 max-w-[540px] rounded-md`}
+                >
+                  <p>{d.message}</p>
+                  <p>{d.formattedTimeForDisplay}</p>
+                </div>
+                {d.userId !== userId && <SlOptions size={12} />}
               </div>
             </div>
           </div>
-        ))}
-
-      <div className="items-center justify-center flex flex-row w-full">
-        <div className="border border-primary-3 h-fit w-full"></div>
-        <div className="flex w-full items-center justify-center h-fit">
-          <p>Today June 09, 2021</p>
-        </div>
-        <div className="border border-primary-3 h-fit w-full"></div>
-      </div>
-
-      <div className="flex flex-col gap-1 items-start">
-        <h3 className="text-chat-1">Daddy</h3>
-        <div className="flex flex-row gap-3">
-          <div className="flex flex-col bg-chat-1.1 text-primary-2 p-2 max-w-[540px] rounded-md">
-            <p>
-              Hello Obaidullah, I will be your case advisor for case #029290. I
-              have assigned some homework for you to fill. Please keep up with
-              the due dates. Should you have any questions, you can message me
-              anytime. Thanks.
-            </p>
-            <p>19.12</p>
-          </div>
-          <SlOptions size={12} />
-        </div>
-      </div>
+        );
+      })}
     </div>
   );
 }
