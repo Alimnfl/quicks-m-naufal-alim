@@ -45,6 +45,20 @@ const config = {
           2.1: "#EEDCFF", // A light lavender color.
           3: "#43B78D", // A teal or sea green color.
           3.1: "#D2F2EA", // A light aqua or mint color.
+          4: "#EB5757", // A strong red color.
+          4.1: "#FDE4E4", // A soft blush pink.
+          5: "#2D9CDB", // A bright sky blue color.
+          5.1: "#D5EFFF", // A light baby blue color.
+          6: "#F2994A", // A rich orange color.
+          6.1: "#FDE8D3", // A soft apricot color.
+          7: "#27AE60", // A deep emerald green.
+          7.1: "#D5F5E3", // A light mint green color.
+          8: "#6C5CE7", // A royal purple color.
+          8.1: "#E2D9FF", // A light lilac color.
+          9: "#FF6F61", // A coral pink color.
+          9.1: "#FFE6E3", // A soft peach color.
+          10: "#56CCF2", // A bright cyan color.
+          10.1: "#E1F5FE", // A light pastel blue.
         },
         sticker: {
           1: "#E9F3FF", // A very light sky blue color.
