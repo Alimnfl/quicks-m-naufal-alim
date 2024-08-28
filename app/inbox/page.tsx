@@ -1,5 +1,11 @@
 import React from "react";
 import InboxContent from "./_content/InboxContent";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Inbox | Quicks",
+  description: "Faster and no hassle app.",
+};
 
 function Page() {
   return (
