@@ -1,5 +1,11 @@
 import React from "react";
 import TaskContent from "./_content/TaskContent";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Task | Quicks",
+  description: "Faster and no hassle app.",
+};
 
 function Page() {
   return (
