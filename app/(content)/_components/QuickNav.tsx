@@ -7,9 +7,13 @@ import { DataIcon, DataIconInbox, DataIconTask } from "../_data/ContentData";
 import { AnimatePresence, motion } from "framer-motion";
 import { usePathname } from "next/navigation";
 import { childVariantNav, containerVariantNav } from "../_data/VariantMotion";
+import { useConvexAuth } from "convex/react";
+import { SignInButton } from "@clerk/clerk-react";
 
 function QuickNav() {
   const [triggerQuick, setTriggerQuick] = useState<boolean>(false);
+  const { isAuthenticated } = useConvexAuth();
+
   const pathname = usePathname();
 
   const toggleTrigger = () => {
@@ -23,7 +27,15 @@ function QuickNav() {
   return (
     <div className="relative w-full h-auto ">
       <div className="fixed right-[300px] bottom-0 flex flex-row">
-        {isLanding && (
+        {isLanding && !isAuthenticated && (
+          <SignInButton mode="modal">
+            <button className="w-fit h-fit ml-2 flex-col pt-6">
+              <Image src={QuicksTrigger} width={68} height={68} alt="Quick" />
+            </button>
+          </SignInButton>
+        )}
+
+        {isLanding && isAuthenticated && (
           <AnimatePresence>
             {triggerQuick && (
               <motion.div
@@ -55,7 +67,7 @@ function QuickNav() {
           </AnimatePresence>
         )}
 
-        {isInbox && (
+        {isInbox && isAuthenticated && (
           <>
             <AnimatePresence>
               <motion.div
@@ -87,7 +99,7 @@ function QuickNav() {
           </>
         )}
 
-        {isTask && (
+        {isTask && isAuthenticated && (
           <>
             <AnimatePresence>
               <motion.div
