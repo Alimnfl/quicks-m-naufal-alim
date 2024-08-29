@@ -1,5 +1,9 @@
 ## Techstack NextJS :
+
 Have much library in this Project:
+
+- Clerk React (Authentication)
+- Cloud Google Firestore
 - ShadcnUI
 - Tailwind CSS, Tailwind Merge
 - Framer Motion
