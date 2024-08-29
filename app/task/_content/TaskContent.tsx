@@ -243,11 +243,8 @@ function TaskContent() {
           <div className="overflow-y-auto w-full flex flex-col gap-2 h-full px-4">
             {filterTasksByUrgency(selectedTask).map((data) => {
               return (
-                <div className="flex flex-col">
-                  <div
-                    key={data.id}
-                    className="flex gap-2 justify-between flex-row"
-                  >
+                <div className="flex flex-col" key={data.id}>
+                  <div className="flex gap-2 justify-between flex-row">
                     <div className="flex flex-row gap-3 items-center">
                       <div className="flex flex-col h-full w-fit pt-1">
                         <input
