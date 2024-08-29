@@ -260,7 +260,7 @@ function TaskContent() {
                           }
                         />
                       </div>
-                      <div className="flex flex-col gap-2 text-primary-2">
+                      <div className="flex flex-col gap-2 max-w-[330px] text-primary-2">
                         <textarea
                           value={data.title}
                           onChange={(e) =>
@@ -282,7 +282,7 @@ function TaskContent() {
                     <div className="items-start justify-start h-full w-fit ">
                       <div className="flex flex-row items-center gap-2">
                         {data.status === false && (
-                          <div className="font-base text-indicator-3">
+                          <div className="font-base text-indicator-3 ">
                             {calculateDaysLeft(data.date)}
                           </div>
                         )}
