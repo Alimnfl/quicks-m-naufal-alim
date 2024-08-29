@@ -25,11 +25,19 @@ import {
 } from "firebase/firestore";
 import { v4 as uuidv4 } from "uuid";
 import { useConvexAuth } from "convex/react";
+import { Spinner } from "@/app/task/_component/spinner";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@radix-ui/react-dropdown-menu";
 
 function InboxIdContent() {
   const [dataInbox, setDataInbox] = useState<InboxDataProps[]>([]);
   const [isAction, setIsAction] = useState<{ [key: string]: boolean }>({});
   const [message, setMessage] = useState<string>("");
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const { isAuthenticated } = useConvexAuth();
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
 
@@ -47,6 +55,7 @@ function InboxIdContent() {
       collection(db, "inbox-data"),
       where("groupName", "==", decodedGroupName)
     );
+    setIsLoading(true);
 
     const unsubscribe = onSnapshot(q, (QuerySnapshot) => {
       const inboxData: InboxDataProps[] = [];
@@ -54,6 +63,7 @@ function InboxIdContent() {
         inboxData.push({ ...doc.data(), id: doc.id } as InboxDataProps);
       });
       setDataInbox(inboxData);
+      setIsLoading(false);
     });
 
     return () => unsubscribe();
@@ -138,7 +148,16 @@ function InboxIdContent() {
           userId={userId}
           isAction={isAction}
           setIsAction={setIsAction}
+          isLoading={isLoading}
         />
+
+        {isLoading && (
+          <div className="text-center justify-center text-primary-3 pb-20 w-full h-full flex flex-col items-center gap-8">
+            <Spinner size={"icon"} />
+            Loading Task List
+          </div>
+        )}
+
         {isAuthenticated &&
           dataInbox.some((d) => d.groupName === decodedGroupName) && (
             <form
@@ -173,12 +192,14 @@ function ConversationalContent({
   editItem,
   isAction,
   setIsAction,
+  isLoading,
 }: {
   userId: string;
   dataInbox: InboxDataProps[];
   editItem: (id: string) => void;
   isAction: { [key: string]: boolean };
   setIsAction: React.Dispatch<React.SetStateAction<{ [key: string]: boolean }>>;
+  isLoading: boolean;
 }) {
   const getTextColor = (username: string): string => {
     const firstLetter = username[0].toLowerCase();
@@ -328,7 +349,7 @@ function ConversationalContent({
                 <div className="flex w-[700px]  items-center justify-center h-fit">
                   <p>
                     {d.formattedDate === formatDate(new Date().toISOString())
-                      ? "Today"
+                      ? `Today`
                       : d.formattedDate}
                   </p>
                 </div>
@@ -348,32 +369,33 @@ function ConversationalContent({
               >
                 {d.userId === userId ? "You" : d.userName}
               </h3>
+
               <div className="flex flex-row items-start gap-3">
                 {d.userId === userId && (
-                  <button onClick={() => toggleHiddenAction(d.id)}>
-                    <SlOptions size={12} />
-                  </button>
-                )}
-                {isAction[d.id] && (
-                  <motion.div
-                    variants={containerVariantDropdown}
-                    initial="hidden"
-                    animate="show"
-                    className="absolute mt-2 z-50 w-[80px] right-[120px] flex flex-col text-primary-3 bg-white border border-gray-300 rounded-lg shadow-xl"
-                  >
-                    <button
-                      onClick={() => deleteItem(d.id)}
-                      className="px-4 py-2 cursor-pointer text-red-600 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-300 rounded-t-lg"
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button>
+                        <SlOptions size={12} />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent
+                      align="end"
+                      className="w-[80px] z-50  mt-2 bg-white border border-gray-300 rounded-lg shadow-xl"
                     >
-                      Delete
-                    </button>
-                    <button
-                      onClick={() => editItem(d.id)}
-                      className="px-4 py-2 cursor-pointer text-blue-600 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-300 rounded-b-lg"
-                    >
-                      Edit
-                    </button>
-                  </motion.div>
+                      <DropdownMenuItem
+                        onClick={() => deleteItem(d.id)}
+                        className="text-red-600 p-2 hover:bg-red-100"
+                      >
+                        Delete
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => editItem(d.id)}
+                        className="text-blue-600 p-2 hover:bg-blue-100"
+                      >
+                        Edit
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 )}
 
                 <div

@@ -58,6 +58,25 @@ function InboxContent() {
     return acc;
   }, [] as InboxDataProps[]);
 
+  function formatTimeForDisplay(clock: string): string {
+    if (!clock) return "";
+
+    const [time, modifier] = clock.trim().split(" ");
+    if (!time) return "";
+
+    let [hours, minutes] = time.split(":").map(Number);
+
+    if (isNaN(hours) || isNaN(minutes)) return "";
+
+    if (modifier === "PM" && hours !== 12) {
+      hours += 12;
+    } else if (modifier === "AM" && hours === 12) {
+      hours = 0;
+    }
+
+    return `${hours.toString().padStart(2, "0")}.${minutes.toString().padStart(2, "0")}`;
+  }
+
   return (
     <div className="flex flex-col items-end">
       <motion.div
@@ -101,6 +120,9 @@ function InboxContent() {
                   <p className="text-primary-3 text-sm">{d.message}</p>
                 </div>
                 <div className="text-primary-3">{d.date}</div>
+                <div className="text-primary-3">
+                  {formatTimeForDisplay(d.clock)}
+                </div>
               </Link>
             ))}
       </motion.div>
