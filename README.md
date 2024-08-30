@@ -2,11 +2,13 @@
 
 Have much library in this Project:
 
-- Clerk React (Authentication)
-- Cloud Google Firestore
+- Clerk React (Authentication) → dev, can inputed userId and userName
+- Cloud Google Firestore → for database realtime
 - ShadcnUI
 - Tailwind CSS, Tailwind Merge
-- Framer Motion
+- Framer Motion → animation
+- Cloudflare → for dns website
+- Vercel → for deployment management.
 
 ## Getting Started
 
